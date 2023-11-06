@@ -3,7 +3,6 @@ import os
 def construct_tree(branchlength, msa, table ):
     #initialize the dictionary
     tree = {}
-    list_potential_key = [] 
     
     #open file
     try:
@@ -39,7 +38,7 @@ def construct_tree(branchlength, msa, table ):
                         tree[line.split(",")[1].strip("\n")]["Parents"] = line.split(",")[0] #set parents
                         tree[line.split(",")[1].strip("\n")]["Length_to_P"] = len_branch[index] #set length
                     
-                    index += 1          
+                    index += 1 # increase index      
                  
     except IOError:
         print("Error file not found")

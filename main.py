@@ -2,7 +2,7 @@
 import common as imp
 import os
 
-branch_test = "data\ENSG00000013016_EHD3_NT.branchlength.dat"
+branch_test = ""
 msa_test = "data/ENSG00000013016_EHD3_NT.msa.dat"
 table_test = "data/ENSG00000013016_EHD3_NT.table.dat"
 
