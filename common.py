@@ -44,5 +44,14 @@ def construct_tree(branchlength, msa, table ):
         print("Error file not found")
     return tree
 
+def score_calculation(sequence_A, sequence_B):
+    #Difference between two sequences
+            
+    return sum([1 for i in range(len(sequence_A)) if sequence_A[i] == sequence_B[i]]) / len(sequence_A)
+
+
+
+    
+
 
 
