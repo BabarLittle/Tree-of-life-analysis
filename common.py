@@ -6,7 +6,7 @@ import numpy as np
 branch_test = "data\ENSG00000013016_EHD3_NT.branchlength.dat"
 msa_test = "data/ENSG00000013016_EHD3_NT.msa.dat"
 table_test = "data/ENSG00000013016_EHD3_NT.table.dat"
-mu = -0.1
+mu = 0.01
 Q_matrix=np.array([[-3,1,1,1],[1,-3,1,1],[1,1,-3,1],[1,1,1,-3]])*mu
 
 def construct_tree(branchlength, msa, table ):
@@ -54,21 +54,25 @@ def construct_tree(branchlength, msa, table ):
     return tree
 
 
-
+#Credit Tanguy
 def alignment_score(sequence, branch_length):
     result_vector = []
     for i in range(len(sequence)):
-                    if sequence[i]=="A": vector = [1,0,0,0]
-                    elif sequence[i]=="C": vector = [0,1,0,0]
-                    elif sequence[i]=="G": vector = [0,0,1,0]
-                    elif sequence[i]=="T": vector = [0,0,0,1]
+                    if sequence[i]=="A": vector = np.array([1,0,0,0])
+                    elif sequence[i]=="C": vector = np.array([0,1,0,0])
+                    elif sequence[i]=="G": vector = np.array([0,0,1,0])
+                    elif sequence[i]=="T": vector = np.array([0,0,0,1])
                     
+                    # Calculate the probability for the current position
                     prob = np.matmul(np.exp(Q_matrix*branch_length), vector)
                     result_vector.append(prob)
-    return math.prod(result_vector) 
+    return np.array(result_vector)
 
-def alignment_similarity(species1, species2):
-    return math.prod([species1, species2])
+#Need to include length to parent
+def alignment_similarity(species1, species2, length1, length2):
+    prob1 = [np.matmul(np.exp(Q_matrix*length1),vector) for vector in species1] 
+    prob2 = [np.matmul(np.exp(Q_matrix*length2),vector) for vector in species2] 
+    return np.multiply(prob1, prob2) 
 
 
 def prob_calculation(dict_tree, dynamic_dict = None, keys = None):
@@ -84,7 +88,6 @@ def prob_calculation(dict_tree, dynamic_dict = None, keys = None):
         sequence = dict_tree[keys[index]]["Sequence"] #Get sequence
         if "Length_to_P" in dict_tree[keys[index]]: #check if length to parent is in the nested dictionary
             branch_length = float(dict_tree[keys[index]]["Length_to_P"]) #transform length to float
-            
             dynamic_dict[keys[index]] = alignment_score(sequence, branch_length) #calculate alignment score
             keys.remove(keys[index]) #remove the key from the list of keys
 
@@ -97,16 +100,16 @@ def prob_calculation(dict_tree, dynamic_dict = None, keys = None):
     
     #calculate alignment similarity of parent based on children
     for key in keys: #for each key in the list of keys
-        children = tree[key]["children"] #get children
+        children = dict_tree[key]["children"] #get children
         if all(child in dynamic_dict for child in children): #check if children are in the dynamic dictionary
-            dynamic_dict[key] = alignment_similarity(dynamic_dict[children[0]], dynamic_dict[children[1]]) #calculate alignment similarity
+            dynamic_dict[key] = alignment_similarity(dynamic_dict[children[0]], dynamic_dict[children[1]], float(dict_tree[children[0]]["Length_to_P"]), float(dict_tree[children[1]]["Length_to_P"])) #calculate alignment similarity
             keys.remove(key) #remove the key from the list of keys
      
     #if there are still keys in the list of keys, recursive call   
     if len(keys) > 0:
         return prob_calculation(dict_tree, dynamic_dict=dynamic_dict, keys = keys) #recursive call
     else: #return result
-        return dynamic_dict
+        return list(dynamic_dict.values())[-1]
         
 
         
@@ -117,9 +120,6 @@ def prob_calculation(dict_tree, dynamic_dict = None, keys = None):
         
         
         
-tree = construct_tree(branch_test, msa_test, table_test)
-likelyhood = sum(prob_calculation(tree)['231'])
-print(likelyhood)
 
 
 
