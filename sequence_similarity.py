@@ -16,9 +16,8 @@ import random
 
 #create alignment probability for each nucleotide (only for species with fasta sequence)
 
-def alignment_probability(species,mu,test):
+def alignment_probability(species,mu,test,prob_dict,Q_matrix):
     
-    Q_matrix=np.array([[-3,1,1,1],[1,-3,1,1],[1,1,-3,1],[1,1,1,-3]])*mu
     seq=test[species]["sequence"]
     bl=test[species]["branch_length"]
     prob_alignment=[]
@@ -29,8 +28,8 @@ def alignment_probability(species,mu,test):
         elif seq[i]=="G": vec=[0,0,1,0]
         elif seq[i]=="T": vec=[0,0,0,1]
         
-        prob=np.matmul(np.exp(Q_matrix*bl),vec)
-        prob_alignment.append(list(prob))
+        prob=list(vec)
+        prob_alignment.append(prob)
     
     prob_dict[species]=prob_alignment
     
@@ -41,13 +40,18 @@ def alignment_probability(species,mu,test):
 #based on their alignment probability
 
 
-def alignment_similarity(spe_1,spe_2,prob_dict,test):
+def alignment_similarity(spe_1,spe_2,prob_dict,test,Q_matrix):
     if test[spe_1]["parent"]==test[spe_2]["parent"]:
         prob_ancester=[]
-        prob_1=prob_dict[spe_1]
-        prob_2=prob_dict[spe_2]
+        prob_1=prob_dict[spe_1][:]
+        prob_2=prob_dict[spe_2][:]
+        bl_1=test[spe_1]["branch_length"]
+        bl_2=test[spe_2]["branch_length"]
         for j in range(len(prob_1)):
+            prob_1[j]=list(np.matmul(np.exp(Q_matrix*bl_1),prob_1[j]))
+            prob_2[j]=list(np.matmul(np.exp(Q_matrix*bl_2),prob_2[j]))
             prob_ancester.append([prob_1[j][i]*prob_2[j][i] for i in range(4)])
+            #is it really a multiplication (then big value for each ancesters)
         prob_dict[test[spe_1]["parent"]]=prob_ancester
 
 
@@ -66,10 +70,10 @@ def msa_opening(msa_test):
 
 #create dictionnary with all alignment probability from sequence we have
 
-def probability_dict(msa,test_1,mu,prob_dict):
+def probability_dict(msa,test_1,mu,prob_dict,Q_matrix):
     names=list(msa.keys())
     for i in names:
-        alignment_probability(i, mu, test_1)
+        alignment_probability(i, mu, test_1,prob_dict,Q_matrix)
     
     return(prob_dict) 
     
