@@ -9,6 +9,8 @@ Created on Fri Nov 10 13:22:48 2023
 import math
 import numpy as np
 import random
+from scipy.linalg import expm
+
 
 
 
@@ -48,10 +50,14 @@ def alignment_similarity(spe_1,spe_2,prob_dict,test,Q_matrix):
         bl_1=test[spe_1]["branch_length"]
         bl_2=test[spe_2]["branch_length"]
         for j in range(len(prob_1)):
-            prob_1[j]=list(np.matmul(np.exp(Q_matrix*bl_1),prob_1[j]))
-            prob_2[j]=list(np.matmul(np.exp(Q_matrix*bl_2),prob_2[j]))
-            prob_ancester.append([prob_1[j][i]*prob_2[j][i] for i in range(4)])
+            vec1=list(np.matmul(expm(Q_matrix*bl_1),prob_1[j]))
+            vec2=list(np.matmul(expm(Q_matrix*bl_2),prob_2[j]))
+            prob_ancester.append([vec1[i]*vec2[i] for i in range(4)])
             #is it really a multiplication (then big value for each ancesters)
+            
+            #this line is to scale the score in order to compare doesn't matter which generation it is
+            #prob_ancester[j]=[prob_ancester[j][i]/sum(prob_ancester[j]) for i in range(4)]
+        
         prob_dict[test[spe_1]["parent"]]=prob_ancester
 
 
@@ -120,3 +126,40 @@ def probability_vec(node_dict,prob_dict,parent):
     
     return(num)    
 
+#%%
+
+def nucleotidic_score(msa_test,test,Q_matrix,prob_dict,node_dict):
+
+    #open msa
+    msa=msa_opening(msa_test) 
+        
+    #create dictionnary with all alignment probability from sequence we have
+    prob_dict=probability_dict(msa,test,mu,prob_dict,Q_matrix)
+    #choose randomly the first species to start with
+    start=start_node(msa)
+        
+    #get the parent and family from the starter
+    parent=find_parent(test,start)
+    #loop that will start here
+        
+    for i in range(1000):
+        #vector that check if the children's probability alignment are in the prob_dict
+        num=probability_vec(node_dict,prob_dict,parent)
+            
+        #create alignment probability if possible or get down of one branch
+        species=node_dict[parent]
+        #if num=[1,1] then both alignments are in prob dict, it is possible to get
+        #the alignment of the ancester
+        if num==[1,1]:
+            alignment_similarity(species[0],species[1],prob_dict,test,Q_matrix)
+            del node_dict[parent]
+            try:
+                parent=find_parent(test,parent)
+            except KeyError:
+                break
+        #if num!=[1,1], it means that at least one of the alignment is not in prob dict
+        #so we have to go further in the tree to find it.
+        else:
+            parent=species[num.index(0)] #parent become the 0 in probability vector
+            find_children(test,parent) #add the family of the new parent
+    return(prob_dict)
