@@ -5,19 +5,52 @@ Created on Mon Nov  6 18:21:31 2023
 @author: tangu
 """
 
-branch_test1 = "ENSG00000013016_EHD3_NT.branchlength.dat"
-msa_test1 = "ENSG00000013016_EHD3_NT.msa.dat"
-table_test1 = "ENSG00000013016_EHD3_NT.table.dat"
+def newick_form(branchlength, msa, table):
+    bl=open(branchlength,"r")
+    msa=open(msa,"r")
+    table=open(table,"r")
+    
+    bl=bl.readlines()[0].split(",")
+    msa=dict(line.replace("\n","").split(" ") for line in msa.readlines())
+    table=[pos.replace("\n","").split(",") for pos in table.readlines()]
+    
+    newick={}
+    
+    #index for branch length and sequence
+    index=0
+    
+    for name in table:
+        
+        #name [0] is the parent, name[1] is the child
+        
+        #for the parent name[0]
+        if name[0] not in newick.keys(): 
+            #create a dictionary as values of name (name is keys of newick dict)
+            newick[name[0]]={}
+            #create an empty list for children
+            newick[name[0]]["children"]=[]
+                
+        
+        #add the child name[1] of name[0] in the list
+        newick[name[0]]["children"].append(name[1])
+          
+        #only conditions needed for name[1] is to know if it is already in newick.keys()
+        #to create an empty dict and to add sequence (because only last individual have sequence), because it would be only once children
+        #so we have to add the only parent, branch and length every time
+        if name[1] not in newick.keys():
+            #create a dictionary as values of name[1]
+            newick[name[1]]={}
+            #add the sequence of i[1]
+            newick[name[1]]["sequence"]=msa[name[1]]
+        
+        #add the parent of i[1] (not in a list because only 1 parent)
+        newick[name[1]]["parent"]=name[0]
+        #add the value of the branch length
+        newick[name[1]]["branch_length"]=bl[index]
 
-branch_test2 = "ENSG00000112282_MED23_NT.branchlength.dat"
-msa_test2 = "ENSG00000112282_MED23_NT.msa.dat"
-table_test2 = "ENSG00000112282_MED23_NT.table.dat"
-
-branch_test3 = "ENSG00000112984_KIF20A_NT.branchlength.dat"
-msa_test3 = "ENSG00000112984_KIF20A_NT.msa.dat"
-table_test3 = "ENSG00000112984_KIF20A_NT.table.dat"
-
-
-test_1=newick_form(branch_test1,msa_test1,table_test1)
-test_2=newick_form(branch_test2,msa_test2,table_test2)
-test_3=newick_form(branch_test3,msa_test3,table_test3)
+        
+        
+        index+=1
+        
+    
+    return(newick)

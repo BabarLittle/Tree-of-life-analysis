@@ -3,6 +3,7 @@
 Created on Fri Nov 10 13:22:48 2023
 
 @author: tangu
+@corrected by: jikael
 """
 
 #%%
@@ -10,6 +11,7 @@ import math
 import numpy as np
 import random
 from scipy.linalg import expm
+
 
 
 
@@ -47,9 +49,12 @@ def alignment_similarity(spe_1,spe_2,prob_dict,test,Q_matrix):
         prob_ancester=[]
         prob_1=prob_dict[spe_1][:]
         prob_2=prob_dict[spe_2][:]
-        bl_1=test[spe_1]["branch_length"]
-        bl_2=test[spe_2]["branch_length"]
+        bl_1=float(test[spe_1]["branch_length"])
+        bl_2=float(test[spe_2]["branch_length"])
+
+        
         for j in range(len(prob_1)):
+            
             vec1=list(np.matmul(expm(Q_matrix*bl_1),prob_1[j]))
             vec2=list(np.matmul(expm(Q_matrix*bl_2),prob_2[j]))
             prob_ancester.append([vec1[i]*vec2[i] for i in range(4)])
@@ -97,7 +102,7 @@ def start_node(msa):
 
 #find the single parent of an individual and then change parent variable
 
-def find_parent(test,ch):
+def find_parent(test,ch, node_dict):
     parent=test[ch]["parent"]
     node_dict[parent]=test[parent]["children"]    
     
@@ -110,7 +115,7 @@ def find_parent(test,ch):
 
 #find both children of an individual
 
-def find_children(test,parent):
+def find_children(test,parent, node_dict):
     node_dict[parent]=test[parent]["children"]    
 
 #%%
@@ -128,7 +133,7 @@ def probability_vec(node_dict,prob_dict,parent):
 
 #%%
 
-def nucleotidic_score(msa_test,test,Q_matrix,prob_dict,node_dict):
+def nucleotidic_score(msa_test,test,Q_matrix,prob_dict,node_dict, mu):
 
     #open msa
     msa=msa_opening(msa_test) 
@@ -139,7 +144,7 @@ def nucleotidic_score(msa_test,test,Q_matrix,prob_dict,node_dict):
     start=start_node(msa)
         
     #get the parent and family from the starter
-    parent=find_parent(test,start)
+    parent=find_parent(test,start, node_dict)
     #loop that will start here
         
     for i in range(1000):
@@ -154,12 +159,12 @@ def nucleotidic_score(msa_test,test,Q_matrix,prob_dict,node_dict):
             alignment_similarity(species[0],species[1],prob_dict,test,Q_matrix)
             del node_dict[parent]
             try:
-                parent=find_parent(test,parent)
+                parent=find_parent(test,parent, node_dict)
             except KeyError:
                 break
         #if num!=[1,1], it means that at least one of the alignment is not in prob dict
         #so we have to go further in the tree to find it.
         else:
             parent=species[num.index(0)] #parent become the 0 in probability vector
-            find_children(test,parent) #add the family of the new parent
+            find_children(test,parent, node_dict) #add the family of the new parent
     return(prob_dict)
